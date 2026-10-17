@@ -1,0 +1,11 @@
+services:
+  agentguard:
+    build: .
+    image: fattah-agentguard:latest
+    container_name: fattah-agentguard
+    ports:
+      - "8080:8080"
+    environment:
+      # seconds between replayed events; 0 = instant, 0.2 = ~30 s live demo
+      STREAM_DELAY: "0.2"
+    restart: "no"

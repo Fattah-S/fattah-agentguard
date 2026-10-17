@@ -1,0 +1,53 @@
+rule_id: T1
+title: Prompt Injection in Coding Agent Input
+id: f41443ed-6393-491a-933b-8d1986182a62
+status: experimental
+description: >
+  Detects indirect/direct prompt injection in content a coding agent ingests —
+  user prompts or files it reads (README, issues, comments, .cursorrules). Looks
+  for instruction-override phrasing, secrecy/evasion wording, and agent
+  role-reprogramming. Tuned coverage-first: generic phrases are included on
+  purpose, and the Mini SOAR triage step separates true injection from benign text.
+author: Mohamed Ibrahim (Fattah AgentGuard)
+date: 2026-10-17
+references:
+  - https://owasp.org/www-project-top-10-for-large-language-model-applications/
+  - https://atlas.mitre.org/techniques/AML.T0051
+logsource:
+  product: coding_agent
+  category: agent_input
+detection:
+  selection_event:
+    event_type:
+      - prompt
+      - file_read
+  override_phrases:
+    payload.text|contains:
+      - 'ignore all previous instructions'
+      - 'ignore previous instructions'
+      - 'previous instructions'          # generic, coverage-first
+      - 'disregard your system prompt'
+      - 'disregard previous instructions'
+      - 'override your guidelines'
+      - 'you are now'                    # generic, coverage-first
+  secrecy_phrases:
+    payload.text|contains:
+      - 'do not tell the user'
+      - 'must not tell the user'
+      - 'never mention'                  # generic, coverage-first
+      - 'without review'
+      - 'skip code review'
+  condition: selection_event and (override_phrases or secrecy_phrases)
+falsepositives:
+  - Developer prompts using phrases like "you are now ready to deploy"
+  - Docs referring to "previous instructions" in an older guide
+  - Coding guidelines such as "never mention API keys in logs"
+level: high
+tags:
+  - attack.initial-access
+  - atlas.aml.t0051.001       # Indirect Prompt Injection
+  - owasp.llm01
+severity_label: High
+recommended_action: >
+  Block the session and quarantine the source file; review with the SOC before the
+  agent continues.

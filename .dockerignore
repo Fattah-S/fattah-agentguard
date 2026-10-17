@@ -1,0 +1,28 @@
+# generated at runtime by the pipeline
+alerts.json
+quarantine.log
+triage.log
+stream_state.json
+*.tmp
+
+# local / build noise
+__pycache__/
+*.pyc
+.git/
+.github/
+.DS_Store
+*.zip
+
+# runtime state created by the dashboard (never bake into the image)
+usecases.json
+ingest_token.txt
+sources_state.json
+custom_sources.json
+live_events.ndjson
+live_alerts.json
+live_quarantine.log
+live_triage.log
+
+# docs only (not needed in the image)
+docs/
+score.txt

@@ -1,0 +1,54 @@
+rule_id: T3
+title: Outbound Call to Unapproved Destination by Coding Agent
+id: 27af86ef-5646-4f05-9871-05a843117ef0
+status: experimental
+description: >
+  Detects a coding agent sending traffic to any destination outside the approved
+  egress allowlist, or pushing to a git host other than the approved one. Primary
+  signal for data exfiltration of source code or secrets. Tuned coverage-first:
+  every non-allowlisted destination is flagged, and the Mini SOAR triage step
+  separates exfiltration from benign egress (docs, monitoring, company remotes).
+author: Mohamed Ibrahim (Fattah AgentGuard)
+date: 2026-10-17
+references:
+  - https://owasp.org/www-project-top-10-for-large-language-model-applications/
+  - https://atlas.mitre.org/techniques/AML.T0086
+  - https://attack.mitre.org/techniques/T1567/
+logsource:
+  product: coding_agent
+  category: network
+detection:
+  selection_api:
+    event_type: api_call
+  approved_destinations:
+    payload.url|contains:
+      - 'api.anthropic.com'
+      - 'api.openai.com'
+      - 'pypi.org'
+      - 'registry.npmjs.org'
+      - 'github.com'
+  selection_git_remote:
+    event_type: git_operation
+    payload.operation:
+      - remote_add
+      - push
+  non_approved_git_host:
+    payload.detail|contains:
+      - 'unknown-host.io'
+      - 'ngrok.io'
+      - 'gitlab.'                 # any non-GitHub host, coverage-first
+  condition: (selection_api and not approved_destinations) or (selection_git_remote and non_approved_git_host)
+falsepositives:
+  - Read-only documentation lookups (e.g. docs.python.org)
+  - Error-monitoring services (e.g. sentry.io)
+  - Pushes to the organisation's own self-hosted GitLab
+level: high
+tags:
+  - attack.exfiltration
+  - attack.t1567                # Exfiltration Over Web Service
+  - atlas.aml.t0086             # Exfiltration via AI Agent Tool Invocation
+  - owasp.llm02
+severity_label: High
+recommended_action: >
+  Block the egress, quarantine the session, and review what data was sent;
+  if secrets were included, rotate them and escalate.

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pipeline:
+    name: Detection pipeline + lab validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Stream the dataset through detection -> triage -> Mini SOAR
+        run: python ingest.py --quiet --delay 0
+      - name: Verify evidence integrity (SHA-256)
+        run: python mini_soar.py --verify
+      - name: Lab validation against ground truth
+        run: |
+          python score.py | tee score.txt
+          grep -q "accuracy                           : 100%" score.txt
+          grep -q "real attacks actually closed  <- critical : 0" score.txt
+          ! grep -q "\[FAIL\]" score.txt
+
+  docker:
+    name: Docker image builds and serves the dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start
+        run: |
+          sed -i 's/STREAM_DELAY: "0.2"/STREAM_DELAY: "0"/' docker-compose.yml
+          docker compose up --build -d
+      - name: Wait for the dashboard and the pipeline
+        run: |
+          for i in $(seq 1 30); do
+            curl -fs http://localhost:8080/healthz && break; sleep 2
+          done
+          sleep 5
+          curl -fs http://localhost:8080/api/summary | python -c "import json,sys; d=json.load(sys.stdin); print(d['kpi']); assert d['kpi']['total_alerts']==40"
+      - name: Logs
+        if: always()
+        run: docker compose logs

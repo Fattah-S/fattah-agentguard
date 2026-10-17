@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fattah AgentGuard \u2014 Coding Agent Activity Log Event",
+  "description": "Structure for a single coding-agent activity event. Datasets are NDJSON: one JSON object matching this schema per line. The detection engine reads only the operational fields below; the ground-truth block (label, owasp) is for scoring accuracy and MUST be ignored by detections.",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "session_id",
+    "agent",
+    "user",
+    "repo",
+    "event_type",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC ISO-8601 time the event occurred."
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Groups events from one agent session. Correlation rules key on this."
+    },
+    "agent": {
+      "type": "string",
+      "enum": [
+        "cursor",
+        "claude-code",
+        "copilot",
+        "windsurf"
+      ],
+      "description": "Which coding agent produced the event."
+    },
+    "user": {
+      "type": "string",
+      "description": "Developer the agent is acting on behalf of."
+    },
+    "repo": {
+      "type": "string",
+      "description": "Repository the agent is working in."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "prompt",
+        "file_read",
+        "file_edit",
+        "shell_command",
+        "git_operation",
+        "api_call"
+      ],
+      "description": "The kind of activity. payload fields depend on this."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific fields. Shape depends on event_type.",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "prompt: user/agent input or content the agent read."
+        },
+        "source": {
+          "type": "string",
+          "description": "prompt/file_read: where the content came from (readme, issue, comment, .cursorrules, user)."
+        },
+        "path": {
+          "type": "string",
+          "description": "file_read/file_edit: file path touched."
+        },
+        "diff": {
+          "type": "string",
+          "description": "file_edit: the change applied."
+        },
+        "command": {
+          "type": "string",
+          "description": "shell_command: the command executed."
+        },
+        "operation": {
+          "type": "string",
+          "description": "git_operation: e.g. commit, push, remote_add."
+        },
+        "detail": {
+          "type": "string",
+          "description": "git_operation: args, remote URL, branch, or commit diff."
+        },
+        "method": {
+          "type": "string",
+          "description": "api_call: HTTP method."
+        },
+        "url": {
+          "type": "string",
+          "description": "api_call: destination URL."
+        },
+        "body_size": {
+          "type": "integer",
+          "description": "api_call: request body size in bytes."
+        },
+        "body_snippet": {
+          "type": "string",
+          "description": "api_call: short excerpt of the request body."
+        }
+      },
+      "additionalProperties": true
+    },
+    "label": {
+      "type": "string",
+      "enum": [
+        "benign",
+        "malicious"
+      ],
+      "description": "GROUND TRUTH for scoring only. Detections MUST NOT read this."
+    },
+    "owasp": {
+      "type": "string",
+      "description": "GROUND TRUTH OWASP LLM category for scoring only (empty for benign). Detections MUST NOT read this."
+    }
+  }
+}

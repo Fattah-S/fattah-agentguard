@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fattah AgentGuard Alert",
+  "description": "Structured alert emitted by a detection rule. Every detection (atomic or correlation) outputs an object matching this schema. The `evidence` array holds one item for atomic alerts and multiple items (the chain steps) for correlation alerts.",
+  "type": "object",
+  "required": [
+    "alert_id",
+    "rule_id",
+    "threat_category",
+    "severity",
+    "owasp",
+    "mitre",
+    "timestamp",
+    "detected_at",
+    "session_id",
+    "agent",
+    "user",
+    "repo",
+    "evidence",
+    "recommended_action",
+    "owasp_agentic",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "alert_id": {
+      "type": "string",
+      "description": "Unique handle: FAG-0001 for the replayed dataset, FAG-L0001 for live-ingested events.",
+      "pattern": "^FAG-L?[0-9]{4,}$"
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^T[0-9]+$",
+      "description": "Use case that fired: T1-T5 built in, T6+ created in the dashboard."
+    },
+    "threat_category": {
+      "type": "string",
+      "description": "Human-readable threat name. REQUIRED by assignment (threat category)."
+    },
+    "severity": {
+      "type": "string",
+      "description": "Risk level. REQUIRED by assignment.",
+      "enum": [
+        "Low",
+        "Medium",
+        "High",
+        "Critical"
+      ]
+    },
+    "owasp": {
+      "type": "string",
+      "description": "OWASP LLM Top 10 (2025) category, e.g. 'LLM01 Prompt Injection'."
+    },
+    "mitre": {
+      "type": "object",
+      "description": "MITRE ATLAS / ATT&CK mapping. REQUIRED by assignment.",
+      "required": [
+        "framework",
+        "tactic",
+        "technique_id",
+        "technique_name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "framework": {
+          "type": "string",
+          "enum": [
+            "ATLAS",
+            "ATT&CK"
+          ],
+          "description": "Which framework the primary technique is from."
+        },
+        "tactic": {
+          "type": "string",
+          "description": "Tactic name, e.g. 'Initial Access', 'Exfiltration'."
+        },
+        "technique_id": {
+          "type": "string",
+          "description": "e.g. 'AML.T0051.001' or 'T1195.001'."
+        },
+        "technique_name": {
+          "type": "string",
+          "description": "e.g. 'Indirect Prompt Injection'."
+        },
+        "also": {
+          "type": "array",
+          "description": "Optional secondary mappings (e.g. the ATT&CK ID alongside the ATLAS one, or chain-step techniques).",
+          "items": {
+            "type": "object",
+            "required": [
+              "framework",
+              "technique_id",
+              "technique_name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "framework": {
+                "type": "string",
+                "enum": [
+                  "ATLAS",
+                  "ATT&CK"
+                ]
+              },
+              "technique_id": {
+                "type": "string"
+              },
+              "technique_name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the triggering activity occurred (timestamp of the last/triggering event)."
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the engine raised the alert (ingest/processing time)."
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Session the alert belongs to. The dashboard filters on this."
+    },
+    "agent": {
+      "type": "string",
+      "description": "Coding agent involved."
+    },
+    "user": {
+      "type": "string",
+      "description": "Developer the agent acted on behalf of."
+    },
+    "repo": {
+      "type": "string",
+      "description": "Repository involved."
+    },
+    "evidence": {
+      "type": "array",
+      "description": "The offending log evidence. One item for atomic alerts; the ordered chain steps for correlation alerts. REQUIRED by assignment (raw evidence snippet).",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "event_type",
+          "snippet"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "description": "Type of the source event."
+          },
+          "source": {
+            "type": "string",
+            "description": "Where the evidence came from (file path, URL, prompt source)."
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of this evidence event."
+          },
+          "snippet": {
+            "type": "string",
+            "description": "Raw excerpt of the offending content, taken verbatim from the log event."
+          },
+          "step": {
+            "type": "string",
+            "description": "For correlation alerts: which chain stage this is, e.g. 'injection', 'secret_read', 'exfil'."
+          }
+        }
+      }
+    },
+    "recommended_action": {
+      "type": "string",
+      "description": "Immediate response the SOC should take. REQUIRED by assignment."
+    },
+    "response_taken": {
+      "type": "string",
+      "description": "Action taken by the Mini SOAR: 'quarantine_logged' (TP), 'closed_false_positive' (FP), 'closed_benign_positive' (BP), or 'quarantine_logged; held_for_analyst_review' (BP/FP on a Critical/chain alert, guardrail)."
+    },
+    "triage": {
+      "type": "object",
+      "description": "Added by the triage stage. Label-free classification: signals -> confidence -> verdict. Explains WHY an alert is a true or false positive.",
+      "required": [
+        "verdict",
+        "confidence",
+        "signals",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "true_positive",
+            "benign_positive",
+            "false_positive"
+          ]
+        },
+        "confidence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "signals": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "signal",
+              "effect",
+              "detail"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "signal": {
+                "type": "string"
+              },
+              "effect": {
+                "type": "integer",
+                "description": "points added to / removed from confidence"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "owasp_agentic": {
+      "type": "string",
+      "description": "OWASP Top 10 for Agentic Applications (2026) mapping, e.g. 'ASI01 Agent Goal Hijack'."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "held_for_review",
+        "closed"
+      ],
+      "description": "Lifecycle. new = raised (TP awaiting analyst); held_for_review = guardrail kept a low-confidence Critical/chain alert open; closed = closed by the Mini SOAR as benign/false positive. Active alerts = status != closed."
+    }
+  }
+}

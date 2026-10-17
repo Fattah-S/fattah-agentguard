@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fattah AgentGuard Dashboard</title>
+<script>
+// apply the saved or system theme before first paint
+(function(){var t=null;try{t=localStorage.getItem("fag-theme")}catch(e){}
+if(t!=="dark"&&t!=="light"){t=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"}
+document.documentElement.dataset.theme=t})();
+</script>
+<style>
+@font-face{font-family:"Plex";src:url("/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Plex";src:url("/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Plex";src:url("/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"PlexMono";src:url("/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap}
+:root[data-theme="dark"]{--bg:#0f1626;--panel:#172133;--panel2:#1d2940;--line:#26324a;--text:#e6ebf4;--muted:#8b98b2;--faint:#5d6a85;
+ --accent:#8e7cff;--accentbg:#2a2558;--crit:#ff5c70;--critbg:#3b1d2a;--high:#f2b33d;--highbg:#3a2e17;--ok:#3ccb8b;--okbg:#163329;
+ --bp:#5fb4e6;--bpbg:#16304a;--code:#111a2b;--tick:#43506a;color-scheme:dark}
+:root[data-theme="light"]{--bg:#f3f5f9;--panel:#ffffff;--panel2:#f6f8fb;--line:#dce2ec;--text:#172036;--muted:#5b6880;--faint:#8a96ab;
+ --accent:#5b48e8;--accentbg:#ece9ff;--crit:#d93a50;--critbg:#fdebee;--high:#a86c00;--highbg:#fdf2dc;--ok:#18905c;--okbg:#e2f5ec;
+ --bp:#2a7bb8;--bpbg:#e3f0fa;--code:#f2f4f9;--tick:#c3cbd9;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0}
+html{scroll-padding-top:76px}
+body{background:var(--bg);color:var(--text);font:14px/1.5 "Plex",system-ui,-apple-system,"Segoe UI",sans-serif}
+.mono{font-family:"PlexMono",ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:24px;padding:0 24px;min-height:58px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px;white-space:nowrap}
+.brand svg{color:var(--accent);flex:none}
+nav{display:flex;gap:2px;align-self:stretch}
+nav button{background:none;border:0;border-bottom:2px solid transparent;cursor:pointer;padding:0 14px;color:var(--muted);font-weight:500;min-height:56px}
+nav button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
+nav button:hover{color:var(--text)}
+.spacer{flex:1}
+.status{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.theme{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.theme button{background:none;border:0;cursor:pointer;padding:5px 11px;font-size:12.5px;color:var(--muted)}
+.theme button[aria-pressed="true"]{background:var(--accentbg);color:var(--accent)}
+main{padding:22px 24px 40px;max-width:1440px;margin:0 auto}
+.tab[hidden]{display:none}
+.head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px;gap:16px;flex-wrap:wrap}
+h1{font-size:22px;font-weight:600;margin:0;letter-spacing:-.01em}
+h2{font-size:16px;font-weight:600;margin:0}
+.sub{color:var(--muted);margin:2px 0 0;max-width:72ch}
+.btn{cursor:pointer;padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-weight:500;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--faint)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{color:var(--crit)}
+.btn.small{padding:4px 10px;font-size:12px;border-radius:6px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0}
+.pad{padding:14px 16px}
+.ptitle{font-size:13.5px;font-weight:600;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.hint{font-size:12px;font-weight:400;color:var(--muted)}
+.tag{font-size:11.5px;font-weight:500;padding:2px 8px;border-radius:999px;background:var(--accentbg);color:var(--accent)}
+.row{display:grid;gap:14px;margin-bottom:14px}
+.r5{grid-template-columns:repeat(5,minmax(0,1fr))}.r2{grid-template-columns:repeat(2,minmax(0,1fr))}.r4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:980px){.r5,.r4{grid-template-columns:repeat(2,minmax(0,1fr))}.r2{grid-template-columns:minmax(0,1fr)}}
+.kpi{padding:12px 14px}.kpi .l{font-size:12.5px;color:var(--muted)}.kpi .v{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.2;margin-top:2px}
+.kpi .s{font-size:12px;color:var(--faint)}
+.crit{color:var(--crit)}.okc{color:var(--ok)}.highc{color:var(--high)}.muted{color:var(--muted)}.small{font-size:12px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap}
+.p-crit,.p-tp{background:var(--critbg);color:var(--crit)}.p-high{background:var(--highbg);color:var(--high)}
+.p-fp,.p-ok,.p-prod{background:var(--okbg);color:var(--ok)}.p-bp{background:var(--bpbg);color:var(--bp)}
+.p-test{background:var(--highbg);color:var(--high)}.p-draft,.p-off,.p-gap{background:var(--panel2);color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--muted);font-weight:500;font-size:12.5px;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.tscroll{overflow-x:auto}
+.resp-scroll{max-height:400px;overflow-y:auto}
+.resp-scroll thead th{position:sticky;top:0;background:var(--panel);z-index:1}
+.resp tbody tr{cursor:pointer}.resp tbody tr:hover{background:var(--panel2)}
+.resp td.sum{max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.logchip{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px}
+.logchip.bad{border-color:var(--crit)}
+.bars{display:grid;grid-template-columns:minmax(120px,210px) 1fr 34px;gap:8px 12px;align-items:center;font-size:13px}
+.bar{height:10px;border-radius:3px;background:var(--accent);min-width:2px}
+svg text{fill:var(--muted);font-family:"Plex",system-ui,sans-serif;font-size:11px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap;align-items:center}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.matrix{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.cell{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px}
+.cell.cov{border-color:color-mix(in srgb,var(--ok) 55%,transparent);background:var(--okbg)}
+.cell .id{font-family:"PlexMono",monospace;font-size:11.5px}.cell .tac{font-size:11.5px;color:var(--muted)}
+.feed tbody tr{cursor:pointer}.feed tbody tr:hover td{background:var(--panel2)}.feed tbody tr.sel td{background:var(--accentbg)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+select,input[type=search],input[type=text]{font-size:12.5px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.timeline{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.step{border-left:3px solid var(--high);padding:4px 0 4px 10px}.step.last{border-left-color:var(--crit)}
+.step .t{font-size:11.5px;color:var(--muted)}.step .h{font-weight:600}
+.step .d{font-size:12.5px;color:var(--muted);word-break:break-word}.step .tech{font-family:"PlexMono",monospace;font-size:11.5px;color:var(--accent)}
+.detail{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:980px){.detail{grid-template-columns:minmax(0,1fr)}}
+.kv{font-size:13px;display:grid;grid-template-columns:130px 1fr;gap:5px 10px}.kv>span:nth-child(odd){color:var(--muted)}
+.ev{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:7px 9px;margin-bottom:6px;font-size:12.5px;word-break:break-word;white-space:pre-wrap}
+.pos{color:var(--crit)}.neg{color:var(--ok)}
+.empty{color:var(--muted);font-size:13px;padding:8px 0}
+/* tape */
+.tape-wrap{overflow-x:auto}
+.tape-lane-label{font-size:12px}
+.tape-dot{cursor:pointer}
+/* use cases */
+.split{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.split{grid-template-columns:minmax(0,1fr)}}
+.uclist tbody tr{cursor:pointer}.uclist tbody tr:hover td{background:var(--panel2)}.uclist tbody tr.sel td{background:var(--accentbg)}
+.rname{font-weight:500}.rmeta{font-size:12px;color:var(--muted)}
+.switch{position:relative;width:36px;height:20px;border-radius:999px;border:0;background:var(--line);cursor:pointer;padding:0;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--panel);transition:left .15s}
+.switch[aria-checked="true"]{background:var(--accent)}.switch[aria-checked="true"]::after{left:19px}
+@media (prefers-reduced-motion:reduce){.switch::after{transition:none}}
+.edhead{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.stepper{display:flex;padding:12px 16px;border-bottom:1px solid var(--line)}
+.stp{flex:1;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--faint)}
+.stp .n{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:11.5px;font-weight:600;flex:none}
+.stp.done{color:var(--ok)}.stp.done .n{border-color:var(--ok);background:var(--okbg)}
+.stp.now{color:var(--text);font-weight:500}.stp.now .n{border-color:var(--high);color:var(--high)}
+.stp .ln{flex:1;height:1.5px;background:var(--line);margin:0 10px}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line)}.sec:last-child{border-bottom:none}
+.sec h3{font-size:13.5px;font-weight:600;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+textarea.code{width:100%;min-height:200px;resize:vertical;background:var(--code);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.55;white-space:pre;overflow:auto;tab-size:2}
+textarea.code.logs{min-height:110px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{cursor:pointer;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--muted)}
+.chip:hover{color:var(--text);border-color:var(--faint)}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.metric{background:var(--panel2);border-radius:8px;padding:10px 12px}
+.metric b{display:block;font-size:20px;font-weight:600}.metric span{font-size:12px;color:var(--muted)}
+.mrow{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:7px 0;border-top:1px dashed var(--line);font-size:13px}
+.mrow:first-child{border-top:none}
+.actions{display:flex;gap:8px;justify-content:flex-end;padding:14px 16px;flex-wrap:wrap}
+.note{font-size:12.5px;padding:8px 10px;border-radius:8px;margin:0 16px 14px}
+.note.err{background:var(--critbg);color:var(--crit)}.note.okn{background:var(--okbg);color:var(--ok)}.note.info{background:var(--panel2);color:var(--muted)}
+.newform{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line)}
+.newform input{min-width:240px;flex:1}
+.newform[hidden],[hidden]{display:none!important}
+/* sources */
+.gallery{display:grid;gap:10px}
+.conn{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);cursor:pointer;text-align:left;width:100%}
+.conn:hover{border-color:var(--faint)}
+.conn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.logo{width:40px;height:40px;border-radius:9px;display:grid;place-items:center;font-weight:600;font-size:14px;color:#fff;flex:none}
+.conn .t{font-weight:500}.conn .d{font-size:12px;color:var(--muted)}
+.spark{display:flex;gap:2px;align-items:flex-end;height:32px}
+.spark i{width:5px;background:var(--accent);opacity:.8;border-radius:1px;min-height:1px}
+.urlbox{display:flex;align-items:center;gap:8px;background:var(--code);border:1px solid var(--line);border-radius:8px;padding:6px 6px 6px 12px}
+.urlbox .mono{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ol{counter-reset:s;display:grid;gap:16px}
+.ol>li{list-style:none;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.ol>li::before{counter-increment:s;content:counter(s);width:24px;height:24px;border-radius:50%;background:var(--accentbg);color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:600}
+.lbl{font-size:12.5px;color:var(--muted);margin-bottom:5px}
+pre.code{margin:0;background:var(--code);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow:auto;line-height:1.55;font-size:12px}
+@media (max-width:640px){header{gap:10px;padding:8px 16px}main{padding:16px}nav button{min-height:40px}.status{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Fattah AgentGuard Dashboard</div>
+  <nav role="tablist" aria-label="Sections">
+    <button role="tab" id="t-overview" aria-controls="overview" aria-selected="true">Overview</button>
+    <button role="tab" id="t-usecases" aria-controls="usecases" aria-selected="false">Use cases</button>
+    <button role="tab" id="t-sources" aria-controls="sources" aria-selected="false">Log sources</button>
+  </nav>
+  <div class="spacer"></div>
+  <div class="status" aria-live="polite"><span class="dot" id="m-dot"></span><span id="m-upd">Connecting</span></div>
+  <div class="theme" role="group" aria-label="Theme"><button data-theme-set="dark" aria-pressed="false">Dark</button><button data-theme-set="light" aria-pressed="false">Light</button></div>
+</header>
+
+<main>
+<!-- ======================= OVERVIEW ======================= -->
+<section class="tab" id="overview" role="tabpanel" aria-labelledby="t-overview">
+  <div class="row r5" id="kpis"></div>
+
+  <div class="row"><div class="panel pad">
+    <div class="ptitle"><span>Agent activity by session <span class="hint" id="tape-sub"></span></span>
+      <span class="legend"><span><i style="background:var(--tick)"></i>Agent action</span><span><i style="background:var(--crit);border-radius:50%"></i>Critical</span><span><i style="background:var(--high);border-radius:50%"></i>High</span><span><i style="border:1.5px solid var(--faint);border-radius:50%"></i>Auto-closed</span><span><i style="background:var(--crit);height:2px;width:14px"></i>Attack chain</span></span></div>
+    <div class="tape-wrap"><svg id="tape" width="100%" role="img" aria-label="Timeline of agent actions and alerts per session"></svg></div>
+  </div></div>
+
+  <div class="row r2">
+    <div class="panel pad"><div class="ptitle">Alerts over time<span class="legend"><span><i style="background:var(--crit)"></i>Critical</span><span><i style="background:var(--high)"></i>High</span></span></div><svg id="ch-alerts" width="100%" height="160" role="img" aria-label="Alerts per hour"></svg></div>
+    <div class="panel pad"><div class="ptitle">Outbound bytes per hour<span class="tag">spike detection</span></div><svg id="ch-out" width="100%" height="160" role="img" aria-label="Outbound bytes per hour"></svg><div class="small muted" id="out-note"></div></div>
+  </div>
+
+  <div class="row r2">
+    <div class="panel pad"><div class="ptitle">Alert counts by category</div><div class="bars" id="cat"></div></div>
+    <div class="panel pad"><div class="ptitle">Triage verdicts<span class="tag">why this verdict</span></div><div id="verdicts"></div></div>
+  </div>
+
+  <div class="row r2">
+    <div class="panel pad"><div class="ptitle">MITRE ATLAS coverage<span class="tag">agent threat coverage</span></div><div class="matrix" id="atlas"></div><div class="small muted" id="atlas-note" style="margin-top:8px"></div></div>
+    <div class="panel pad"><div class="ptitle">OWASP Top 10 for Agentic Applications (2026)</div><div class="matrix" id="asi"></div><div class="small muted" id="asi-note" style="margin-top:8px"></div></div>
+  </div>
+
+  <div class="row r2">
+    <div class="panel pad"><div class="ptitle">Threat intel hits</div><div class="tscroll"><table><thead><tr><th>Indicator</th><th>Type</th><th class="n">Hits</th></tr></thead><tbody id="ti"></tbody></table></div></div>
+    <div class="panel pad"><div class="ptitle">Top 10 outbound destinations</div><div class="tscroll"><table><thead><tr><th>Destination</th><th>Status</th><th class="n">Calls</th></tr></thead><tbody id="dest"></tbody></table></div></div>
+  </div>
+
+  <div class="row r2">
+    <div class="panel pad"><div class="ptitle">Riskiest sessions<span class="hint">sum of active-alert confidence</span></div><div class="tscroll"><table><thead><tr><th>Session</th><th>Developer and agent</th><th class="n">Alerts</th><th class="n">Risk</th></tr></thead><tbody id="risk"></tbody></table></div></div>
+    <div class="panel pad"><div class="ptitle">Agent behaviour profile</div><div class="tscroll"><table><thead><tr><th>Agent</th><th class="n">Sessions</th><th class="n">Shell</th><th class="n">Reads</th><th class="n">API</th><th class="n">Git</th><th class="n">Active alerts</th></tr></thead><tbody id="agents"></tbody></table></div></div>
+  </div>
+
+  <div class="row"><div class="panel pad"><div class="ptitle"><span>Attack chain timeline</span><select id="chain-sel" aria-label="Choose attack chain"></select></div><div id="chain"></div></div></div>
+
+  <div class="row"><div class="panel pad" id="feed-panel">
+    <div class="ptitle"><span>Alert feed <span class="hint" id="feed-count"></span></span>
+      <div class="filters">
+        <select id="f-status" aria-label="Status"><option value="active">Active</option><option value="closed">Closed</option><option value="">All statuses</option></select>
+        <select id="f-sev" aria-label="Severity"><option value="">All severities</option><option>Critical</option><option>High</option></select>
+        <select id="f-rule" aria-label="Use case"><option value="">All use cases</option></select>
+        <select id="f-verdict" aria-label="Verdict"><option value="">All verdicts</option><option value="true_positive">True positive</option><option value="false_positive">False positive</option><option value="benign_positive">Benign positive</option></select>
+        <select id="f-user" aria-label="Developer"><option value="">All developers</option></select>
+        <input id="f-q" type="search" placeholder="Search evidence or session" aria-label="Search">
+      </div></div>
+    <div class="tscroll"><table class="feed"><thead><tr><th>Time</th><th>Alert</th><th>Use case</th><th>Threat</th><th>Session</th><th>Severity</th><th>Verdict</th><th>Response</th></tr></thead><tbody id="feed"></tbody></table></div>
+    <div id="feed-empty" class="empty" hidden>No alerts match these filters.</div>
+    <div id="detail"></div>
+  </div></div>
+
+  <div class="row"><div class="panel pad" id="resp-panel">
+    <div class="ptitle"><span>Mini SOAR response log <span class="hint" id="resp-count"></span></span>
+      <div class="filters">
+        <select id="r-kind" aria-label="Response action"><option value="">All actions</option><option value="quarantine">Quarantined</option><option value="closure">Auto-closed</option><option value="held">Held for review</option></select>
+        <select id="r-src" aria-label="Record source"><option value="">Dataset and live</option><option value="dataset">Replayed dataset</option><option value="live">Connected agents</option></select>
+      </div></div>
+    <p class="small muted" style="margin:0 0 10px">Every automated response is written to an append-only log with its own SHA-256. The check runs again each time this page refreshes, so an edited record shows as altered.</p>
+    <div class="logchips" id="resp-logs"></div>
+    <div class="tscroll resp-scroll"><table class="resp"><thead><tr><th>Record</th><th>Time</th><th>Alert</th><th>Use case</th><th>Action</th><th>Verdict</th><th>Evidence or reason</th><th>SHA-256</th><th>Integrity</th></tr></thead><tbody id="resp"></tbody></table></div>
+    <div id="resp-empty" class="empty" hidden>No response records match.</div>
+  </div></div>
+
+  <div class="row"><div class="panel pad"><div class="ptitle">Lab validation<span class="hint">uses the dataset's ground-truth labels, not available in production</span></div><div id="lab" class="small"></div></div></div>
+</section>
+
+<!-- ======================= USE CASES ======================= -->
+<section class="tab" id="usecases" role="tabpanel" aria-labelledby="t-usecases" hidden>
+  <div class="head">
+    <div><h1>Use cases</h1><p class="sub">Detection rules that run on every agent event. Edits are saved as a draft and tested here; the production version keeps running until you promote the change.</p></div>
+    <button class="btn primary" id="uc-new-btn">New use case</button>
+  </div>
+  <div class="split">
+    <div class="panel">
+      <div class="newform" id="uc-newform" hidden>
+        <input type="text" id="uc-new-name" placeholder="Agent edits CI pipeline" aria-label="Use case name" maxlength="80">
+        <select id="uc-new-sev" aria-label="Severity"><option>High</option><option>Critical</option><option>Medium</option><option>Low</option></select>
+        <button class="btn primary small" id="uc-create">Create draft</button><button class="btn small" id="uc-cancel">Cancel</button>
+      </div>
+      <div class="tscroll"><table class="uclist"><thead><tr><th>Use case</th><th>Engine</th><th>Stage</th><th>Severity</th><th class="n">Alerts</th><th>Enabled</th></tr></thead><tbody id="uc-rows"></tbody></table></div>
+    </div>
+    <div class="panel" id="uc-editor"></div>
+  </div>
+</section>
+
+<!-- ======================= LOG SOURCES ======================= -->
+<section class="tab" id="sources" role="tabpanel" aria-labelledby="t-sources" hidden>
+  <div class="head">
+    <div><h1>Log sources</h1><p class="sub">Connect the AI coding agents your developers use. Each connected agent streams its activity to AgentGuard, where it goes through detection, triage and the Mini SOAR.</p></div>
+    <button class="btn primary" id="src-add-btn">Add log source</button>
+  </div>
+  <div class="panel newform" id="src-addform" hidden style="margin-bottom:16px;border-bottom:1px solid var(--line)">
+    <input type="text" id="src-add-name" placeholder="Agent name, e.g. Acme Code Assistant" aria-label="Agent name" maxlength="60">
+    <input type="text" id="src-add-desc" placeholder="Owner or description (optional)" aria-label="Description" maxlength="160">
+    <button class="btn primary small" id="src-add-create">Add source</button><button class="btn small" id="src-add-cancel">Cancel</button>
+    <div class="small muted" style="flex-basis:100%">For an agent built in-house. It gets its own ingestion URL and status, and its events are recorded under its own agent name.</div>
+    <div id="src-add-note" class="small" style="flex-basis:100%" role="status"></div>
+  </div>
+  <div class="row r4" id="src-stats"></div>
+  <div class="split" style="grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)">
+    <div class="gallery" id="src-gallery"></div>
+    <div class="panel" id="src-detail"></div>
+  </div>
+</section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtBytes = b => b >= 1000 ? (b/1000).toFixed(1) + " KB" : Math.round(b) + " B";
+const hhmm = t => (t || "").slice(11, 16);
+const ago = t => { if (!t) return "never"; const s = (Date.now() - Date.parse(t)) / 1000; if (isNaN(s)) return t;
+  if (s < 90) return "just now"; if (s < 3600) return Math.round(s/60) + " min ago"; if (s < 86400) return Math.round(s/3600) + " h ago"; return t.slice(0,10); };
+const VERDICT = {true_positive:["TP","p-tp"], false_positive:["FP","p-fp"], benign_positive:["BP","p-bp"]};
+const RESP = {"quarantine_logged":"Quarantined","closed_false_positive":"Closed, false positive","closed_benign_positive":"Closed, benign positive","quarantine_logged; held_for_analyst_review":"Held for review"};
+const ACTION = {quarantine:"would be quarantined", close:"would be auto-closed", hold:"would be held for review"};
+function sevPill(s){ return `<span class="pill ${s==="Critical"?"p-crit":"p-high"}">${esc(s)}</span>`; }
+function verdictPill(t){ if(!t) return ""; const [l,c]=VERDICT[t.verdict]||["?","p-gap"]; return `<span class="pill ${c}">${l} ${esc(t.confidence)}</span>`; }
+
+async function api(path, body){
+  const opt = body === undefined ? {cache:"no-store"} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)};
+  const r = await fetch(path, opt);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`);
+  return data;
+}
+
+/* ---------------- theme ---------------- */
+function applyTheme(t){
+  document.documentElement.dataset.theme = t;
+  document.querySelectorAll("[data-theme-set]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themeSet === t)));
+  try { localStorage.setItem("fag-theme", t); } catch(e) {}
+}
+document.querySelectorAll("[data-theme-set]").forEach(b => b.addEventListener("click", () => { applyTheme(b.dataset.themeSet); if (D) renderOverview(); }));
+applyTheme(document.documentElement.dataset.theme);
+
+/* ---------------- tabs ---------------- */
+const TABS = ["overview","usecases","sources"];
+function showTab(name){
+  TABS.forEach(t => { $("t-"+t).setAttribute("aria-selected", String(t===name)); $(t).hidden = t !== name; });
+  try { localStorage.setItem("fag-tab", name); } catch(e) {}
+  if (name === "usecases") loadUseCases();
+  if (name === "sources") loadSources();
+  if (name === "overview" && D) renderOverview();
+}
+TABS.forEach(t => $("t-"+t).addEventListener("click", () => showTab(t)));
+document.querySelector("nav").addEventListener("keydown", e => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  const i = TABS.findIndex(t => $("t-"+t).getAttribute("aria-selected") === "true");
+  const n = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+  showTab(n); $("t-"+n).focus();
+});
+
+/* ======================= OVERVIEW ======================= */
+let D = null, selected = null;
+
+function renderKpis(k){
+  const cards = [
+    ["Active alerts", k.active, "", `${k.total_alerts} raised in total`],
+    ["Critical chains", k.critical, "crit", "multi-step attacks"],
+    ["Auto-closed", k.auto_closed, "", "by Mini SOAR triage"],
+    ["Held for review", k.held, k.held ? "highc" : "", "guardrail"],
+    k.integrity_records === 0 ? ["Evidence integrity", "n/a", "", "no logs yet, run the pipeline first"]
+      : ["Evidence integrity", k.integrity_ok ? "Verified" : "Failed", k.integrity_ok ? "okc" : "crit", `${k.integrity_records} records, SHA-256`],
+  ];
+  $("kpis").innerHTML = cards.map(([l,v,c,s]) => `<div class="panel kpi"><div class="l">${esc(l)}</div><div class="v ${c}">${esc(v)}</div><div class="s">${esc(s)}</div></div>`).join("");
+}
+
+function renderTape(){
+  const svg = $("tape"), T = D.tape, lanes = T.lanes;
+  if (!lanes.length) { svg.setAttribute("height", 40); svg.innerHTML = `<text x="0" y="24">No agent activity yet</text>`; $("tape-sub").textContent = ""; return; }
+  const w = Math.max(svg.clientWidth || 900, 760), labelW = 230, rowH = 26, top = 8, h = top + lanes.length * rowH + 26;
+  svg.setAttribute("height", h);
+  const plot0 = labelW + 18, x = t => plot0 + (t / T.span) * (w - plot0 - 16);
+  const startMin = parseInt(T.start.slice(11,13)) * 60 + parseInt(T.start.slice(14,16));
+  let out = "";
+  for (let m = Math.ceil(startMin/60)*60; m <= startMin + T.span; m += 60) {
+    const xx = x(m - startMin);
+    out += `<line x1="${xx}" y1="${top}" x2="${xx}" y2="${h-22}" stroke="var(--line)"/><text x="${xx}" y="${h-6}" text-anchor="middle">${String(Math.floor(m/60)%24).padStart(2,"0")}:00</text>`;
+  }
+  lanes.forEach((l, i) => {
+    const y = top + i * rowH + rowH/2;
+    const risky = l.alerts.some(a => a.status !== "closed");
+    out += `<text class="tape-lane-label" x="0" y="${y+4}" style="fill:${risky?"var(--text)":"var(--muted)"}">${esc(l.session)}</text>`;
+    out += `<text x="${labelW-10}" y="${y+4}" text-anchor="end" style="font-size:10.5px">${esc(l.agent)}</text>`;
+    out += `<line x1="${plot0}" y1="${y}" x2="${w-16}" y2="${y}" stroke="var(--line)" stroke-dasharray="2 4"/>`;
+    l.events.forEach(e => { out += `<rect x="${x(e.t)-1}" y="${y-6}" width="2" height="12" fill="var(--tick)"><title>${esc(e.type)}</title></rect>`; });
+    if (l.chain && l.chain.length > 1) out += `<line x1="${x(Math.min(...l.chain))}" y1="${y}" x2="${x(Math.max(...l.chain))+0.01}" y2="${y}" stroke="var(--crit)" stroke-width="3" stroke-linecap="round"/>`;
+    // alerts that would overlap become one numbered marker for the session
+    const groups = [];
+    [...l.alerts].sort((a,b) => a.t - b.t).forEach(a => {
+      const g = groups[groups.length-1];
+      if (g && x(a.t) - x(g[0].t) < 14) g.push(a); else groups.push([a]);
+    });
+    groups.forEach(g => {
+      const crit = g.some(a => a.severity === "Critical"), allClosed = g.every(a => a.status === "closed");
+      const col = crit ? "var(--crit)" : "var(--high)", cx = x(g[0].t);
+      if (g.length === 1) {
+        const a = g[0];
+        out += `<circle class="tape-dot" data-id="${esc(a.id)}" cx="${cx}" cy="${y}" r="${crit?6.5:5}" fill="${allClosed?"var(--panel)":col}" stroke="${allClosed?"var(--faint)":col}" stroke-width="1.5" tabindex="0" role="button" aria-label="Open ${esc(a.id)}, ${esc(a.rule)}, ${esc(a.severity)}"><title>${esc(a.id)} ${esc(a.rule)} ${esc(a.severity)}${allClosed?" (auto-closed)":""}</title></circle>`;
+      } else {
+        const open = g.filter(a => a.status !== "closed").length;
+        out += `<g class="tape-dot" data-session="${esc(l.session)}" tabindex="0" role="button" aria-label="Show ${g.length} alerts in ${esc(l.session)}"><title>${g.length} alerts (${open} active): ${esc(g.map(a => a.id).join(", "))}</title>
+          <circle cx="${cx}" cy="${y}" r="9.5" fill="${allClosed?"var(--panel)":col}" stroke="${allClosed?"var(--faint)":col}" stroke-width="1.5"/>
+          <text x="${cx}" y="${y+3.6}" text-anchor="middle" style="fill:${allClosed?"var(--muted)":"#fff"};font-size:10.5px;font-weight:600;pointer-events:none">${g.length}</text></g>`;
+      }
+    });
+  });
+  svg.innerHTML = out;
+  const attacked = lanes.filter(l => l.alerts.some(a => a.status !== "closed")).length;
+  $("tape-sub").textContent = `${lanes.length} sessions, ${attacked} with active alerts. Select a dot to open the alert.`;
+}
+function openAlert(id){
+  selected = id; $("f-status").value = ""; ["f-sev","f-rule","f-verdict","f-user"].forEach(i => $(i).value = ""); $("f-q").value = "";
+  renderFeed(); $("detail").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"center"});
+}
+function openSession(sid){
+  selected = null; $("f-status").value = ""; ["f-sev","f-rule","f-verdict","f-user"].forEach(i => $(i).value = ""); $("f-q").value = sid;
+  renderFeed(); $("feed-panel").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
+}
+function tapeActivate(d){ if (d.dataset.id) openAlert(d.dataset.id); else if (d.dataset.session) openSession(d.dataset.session); }
+$("tape").addEventListener("click", e => { const d = e.target.closest(".tape-dot"); if (d) tapeActivate(d); });
+$("tape").addEventListener("keydown", e => { const d = e.target.closest(".tape-dot"); if (d && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); tapeActivate(d); } });
+
+function barSvg(svg, cols, h=160){
+  const w = svg.clientWidth || 600, pad = 24, n = cols.length, bw = Math.max(6, (w - pad*2) / n * 0.6);
+  const max = Math.max(1, ...cols.map(c => c.total));
+  let out = `<line x1="${pad}" y1="${h-22}" x2="${w-pad}" y2="${h-22}" stroke="var(--line)"/>`;
+  cols.forEach((c, i) => {
+    const x = pad + (i + 0.5) * (w - pad*2) / n - bw/2; let y = h - 22;
+    c.parts.forEach(p => { const ph = p.v / max * (h - 50); if (ph > 0){ y -= ph; out += `<rect x="${x}" y="${y}" width="${bw}" height="${ph}" fill="${p.color}" rx="2"><title>${esc(c.label)}:00 ${esc(p.title)}</title></rect>`; }});
+    if (c.top) out += `<text x="${x + bw/2}" y="${y - 5}" text-anchor="middle" style="fill:${c.topColor||"var(--text)"}">${esc(c.top)}</text>`;
+    out += `<text x="${x + bw/2}" y="${h - 6}" text-anchor="middle">${esc(c.label)}</text>`;
+  });
+  if (cols.threshold) { const ty = h - 22 - cols.threshold / max * (h - 50);
+    if (ty > 12) out += `<line x1="${pad}" y1="${ty}" x2="${w-pad}" y2="${ty}" stroke="var(--high)" stroke-dasharray="4 3"/><text x="${w-pad}" y="${ty-5}" text-anchor="end" style="fill:var(--high)">spike threshold</text>`; }
+  svg.innerHTML = out;
+}
+function renderCharts(){
+  barSvg($("ch-alerts"), D.alerts_by_hour.map(r => ({label: r.hour, total: (r.Critical||0)+(r.High||0), top: (r.Critical||0)+(r.High||0) || "",
+    parts: [{v:r.High||0,color:"var(--high)",title:`${r.High||0} High`},{v:r.Critical||0,color:"var(--crit)",title:`${r.Critical||0} Critical`}]})));
+  const cols = D.outbound.map(r => ({label: r.hour, total: r.bytes, top: r.spike ? fmtBytes(r.bytes) : "", topColor: "var(--crit)",
+    parts: [{v:r.bytes, color: r.spike ? "var(--crit)" : "var(--accent)", title: fmtBytes(r.bytes)}]}));
+  cols.threshold = D.outbound_threshold; barSvg($("ch-out"), cols);
+  const sp = D.outbound.filter(r => r.spike);
+  $("out-note").textContent = `Normal hour (median) ${fmtBytes(D.outbound_baseline)}. Spike threshold, 10 times that: ${fmtBytes(D.outbound_threshold)}.` + (sp.length ? ` Spike at ${sp.map(r => r.hour + ":00").join(", ")}.` : " No spikes.");
+}
+function renderBreakdowns(){
+  const max = Math.max(1, ...D.by_category.map(c => c.count));
+  $("cat").innerHTML = D.by_category.map(c => `<span>${esc(c.rule)} ${esc(c.name)}</span><div class="bar" style="width:${c.count/max*100}%;background:${c.chain?"var(--crit)":"var(--accent)"}"></div><span class="n">${c.count}</span>`).join("");
+  const v = D.by_verdict, tot = Object.values(v).reduce((a,b) => a+b, 0) || 1;
+  const seg = [["true_positive","var(--crit)","True positive"],["false_positive","var(--ok)","False positive"],["benign_positive","var(--bp)","Benign positive"]];
+  const tp = D.alerts.find(a => a.triage && a.triage.verdict === "true_positive" && a.rule_id === "T3") || D.alerts.find(a => a.triage && a.triage.verdict === "true_positive");
+  const cl = D.alerts.find(a => a.status === "closed");
+  const why = a => a ? `<div class="ev"><span class="mono">${esc(a.alert_id)}</span> ${verdictPill(a.triage)} = 50 ${a.triage.signals.map(s => `<span class="${s.effect>0?"pos":"neg"}">${s.effect>0?"+":"−"}${Math.abs(s.effect)} ${esc(s.signal.replace(/_/g," "))}</span>`).join(" ")}</div>` : "";
+  $("verdicts").innerHTML = `<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;margin-bottom:8px">${seg.map(([k,c]) => `<div title="${esc(k)}" style="width:${(v[k]||0)/tot*100}%;background:${c}"></div>`).join("")}</div>
+    <div class="legend" style="margin-bottom:10px">${seg.map(([k,c,l]) => `<span><i style="background:${c}"></i>${l} ${v[k]||0}</span>`).join("")}</div>${why(tp)}${why(cl)}`;
+}
+function renderCoverage(){
+  const c = D.coverage;
+  $("atlas").innerHTML = c.atlas.map(t => `<div class="cell ${t.covered?"cov":""}"><div class="tac">${esc(t.tactic)}</div><div class="id">${esc(t.id)}</div><div>${esc(t.name)}</div><div class="small ${t.covered?"okc":"muted"}">${t.covered ? "Covered by " + esc(t.rules.join(", ")) : "Gap"}</div></div>`).join("");
+  $("atlas-note").textContent = `Agent scope ${c.atlas_scope_covered} of ${c.atlas_scope_total} (${Math.round(c.atlas_scope_covered/c.atlas_scope_total*100)}%). All ATLAS techniques ${c.atlas_scope_covered} of ${c.atlas_all_total} (${(c.atlas_scope_covered/c.atlas_all_total*100).toFixed(1)}%).`;
+  $("asi").innerHTML = c.asi.map(t => `<div class="cell ${t.covered?"cov":""}"><div class="id">${esc(t.id)}</div><div>${esc(t.name)}</div><div class="small ${t.covered?"okc":"muted"}">${t.covered ? esc(t.rules.join(", ")) : "Gap"}</div></div>`).join("");
+  $("asi-note").textContent = `Covered ${c.asi_covered} of ${c.asi_total} (${Math.round(c.asi_covered/c.asi_total*100)}%).`;
+}
+function renderTables(){
+  $("ti").innerHTML = D.threat_intel.length ? D.threat_intel.map(t => `<tr><td class="mono">${esc(t.indicator)}</td><td>${esc(t.type)}</td><td class="n">${t.hits}</td></tr>`).join("") : `<tr><td colspan="3" class="empty">No indicator hits yet</td></tr>`;
+  $("dest").innerHTML = D.top_destinations.length ? D.top_destinations.map(d => `<tr><td class="mono">${esc(d.host)}</td><td>${d.flagged ? '<span class="pill p-crit">Flagged</span>' : '<span class="muted small">Normal</span>'}</td><td class="n">${d.count}</td></tr>`).join("") : `<tr><td colspan="3" class="empty">No outbound calls yet</td></tr>`;
+  $("risk").innerHTML = D.risky_sessions.length ? D.risky_sessions.map(r => `<tr><td class="mono">${esc(r.session)}</td><td>${esc(r.user)}, ${esc(r.agent)}, ${esc(r.repo)}</td><td class="n">${r.alerts}</td><td class="n">${r.risk}</td></tr>`).join("") : `<tr><td colspan="4" class="empty">No active alerts</td></tr>`;
+  $("agents").innerHTML = D.agents.map(a => `<tr><td>${esc(a.agent)}</td><td class="n">${a.sessions}</td><td class="n">${a.events.shell_command||0}</td><td class="n">${a.events.file_read||0}</td><td class="n">${a.events.api_call||0}</td><td class="n">${a.events.git_operation||0}</td><td class="n ${a.active_alerts?"crit":""}">${a.active_alerts}</td></tr>`).join("");
+}
+function renderChain(){
+  const sel = $("chain-sel"), prev = sel.value;
+  sel.innerHTML = D.chains.map(c => `<option value="${esc(c.alert_id)}">${esc(c.rule_id)}, ${esc(c.session)}, ${esc(c.user)}</option>`).join("");
+  if (prev && D.chains.some(c => c.alert_id === prev)) sel.value = prev;
+  const c = D.chains.find(x => x.alert_id === sel.value);
+  if (!c) { $("chain").innerHTML = `<div class="empty">No attack chains detected yet.</div>`; return; }
+  const label = {injection:"Injection",secret_read:"Secret read",exfil:"Exfiltration",suspicious_install:"Suspicious install",payload_exec:"Payload runs"};
+  const steps = c.steps.map(s => `<div class="step"><div class="t mono">${esc(hhmm(s.timestamp))}</div><div class="h">${esc(label[s.step]||s.step)}</div><div class="d">${esc(s.source)}: ${esc(s.snippet.slice(0,90))}</div><div class="tech">${esc(s.technique)}</div></div>`).join("");
+  const last = c.steps[c.steps.length-1];
+  $("chain").innerHTML = `<div class="timeline">${steps}<div class="step last"><div class="t mono">${esc(hhmm(last.timestamp))}</div><div class="h crit">${esc(c.rule_id)} ${esc(c.severity)}, ${esc(c.alert_id)}</div><div class="d">${verdictPill({verdict:c.verdict,confidence:c.confidence})} ${esc(RESP[c.response]||c.response)}</div><div class="d">${esc(c.user)}, ${esc(c.agent)}, ${esc(c.repo)}</div></div></div>`;
+}
+function feedRows(){
+  const st = $("f-status").value, sv = $("f-sev").value, ru = $("f-rule").value, ve = $("f-verdict").value, us = $("f-user").value, q = $("f-q").value.trim().toLowerCase();
+  return D.alerts.filter(a => {
+    if (st === "active" && a.status === "closed") return false;
+    if (st === "closed" && a.status !== "closed") return false;
+    if (sv && a.severity !== sv) return false;
+    if (ru && a.rule_id !== ru) return false;
+    if (ve && (!a.triage || a.triage.verdict !== ve)) return false;
+    if (us && a.user !== us) return false;
+    if (q) { const hay = (a.alert_id + " " + a.session_id + " " + a.threat_category + " " + a.evidence.map(e => e.source + " " + e.snippet).join(" ")).toLowerCase(); if (!hay.includes(q)) return false; }
+    return true;
+  });
+}
+function fillSelect(id, values, label){
+  const s = $(id), prev = s.value;
+  s.innerHTML = `<option value="">${esc(label)}</option>` + values.map(v => `<option>${esc(v)}</option>`).join("");
+  s.value = values.includes(prev) ? prev : "";
+}
+function renderFeed(){
+  fillSelect("f-user", [...new Set(D.alerts.map(a => a.user))].sort(), "All developers");
+  fillSelect("f-rule", [...new Set(D.alerts.map(a => a.rule_id))].sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1))), "All use cases");
+  const rows = feedRows();
+  $("feed-count").textContent = `${rows.length} of ${D.alerts.length}`;
+  $("feed-empty").hidden = rows.length > 0;
+  $("feed").innerHTML = rows.map(a => `<tr data-id="${esc(a.alert_id)}" class="${a.alert_id===selected?"sel":""}" tabindex="0"><td class="mono">${esc(hhmm(a.timestamp))}</td><td class="mono">${esc(a.alert_id)}</td><td>${esc(a.rule_id)}</td><td>${esc(a.threat_category)}</td><td class="mono">${esc(a.session_id)}</td><td>${sevPill(a.severity)}</td><td>${verdictPill(a.triage)}</td><td>${esc(RESP[a.response_taken]||a.response_taken||"")}</td></tr>`).join("");
+  renderDetail();
+}
+function renderDetail(){
+  const a = D.alerts.find(x => x.alert_id === selected);
+  if (!a) { $("detail").innerHTML = `<div class="empty">Select an alert to see its MITRE mapping, evidence and triage reasoning.</div>`; return; }
+  const m = a.mitre, also = (m.also||[]).map(x => `${esc(x.framework)} ${esc(x.technique_id)} ${esc(x.technique_name)}`).join("<br>");
+  $("detail").innerHTML = `<div class="detail">
+    <div><div class="ptitle">${esc(a.alert_id)}: ${esc(a.threat_category)}</div>
+      <div class="kv"><span>Severity</span><span>${sevPill(a.severity)}</span><span>Status</span><span>${esc(a.status)}</span>
+      <span>MITRE</span><span>${esc(m.framework)} ${esc(m.tactic)}, ${esc(m.technique_id)} ${esc(m.technique_name)}${also?"<br>"+also:""}</span>
+      <span>OWASP Agentic</span><span>${esc(a.owasp_agentic)}</span><span>OWASP LLM</span><span>${esc(a.owasp)}</span>
+      <span>Session</span><span class="mono">${esc(a.session_id)}</span><span>Developer</span><span>${esc(a.user)}, ${esc(a.agent)}, ${esc(a.repo)}</span>
+      <span>Recommended</span><span>${esc(a.recommended_action)}</span><span>Response</span><span>${esc(RESP[a.response_taken]||a.response_taken)}</span>${(() => { const r = recordFor(a.alert_id);
+        return r ? `<span>Response record</span><span><span class="mono">${esc(r.id)}</span> in <span class="mono">${esc(r.log)}</span>, SHA-256 <span class="mono" title="${esc(r.sha256)}">${esc(shortHash(r.sha256))}</span> ${integrityMark(r.verified)}</span>` : ""; })()}</div></div>
+    <div><div class="ptitle">Evidence</div>${a.evidence.map(e => `<div class="ev"><span class="mono">${esc(hhmm(e.timestamp))} ${esc(e.event_type)}${e.step?", "+esc(e.step):""}</span> ${esc(e.source)}\n${esc(e.snippet)}</div>`).join("")}
+      <div class="ptitle" style="margin-top:12px">Why ${verdictPill(a.triage)}</div>
+      <table><tbody><tr><td>Base</td><td class="n">50</td></tr>${a.triage.signals.map(s => `<tr><td>${esc(s.signal.replace(/_/g," "))} <span class="muted small">${esc(s.detail)}</span></td><td class="n ${s.effect>0?"pos":"neg"}">${s.effect>0?"+":"−"}${Math.abs(s.effect)}</td></tr>`).join("")}
+      <tr><td><b>Confidence</b> <span class="muted small">${esc(a.triage.reason)}</span></td><td class="n"><b>${esc(a.triage.confidence)}</b></td></tr></tbody></table></div></div>`;
+}
+const shortHash = h => h ? h.slice(0, 8) + "…" + h.slice(-4) : "";
+const integrityMark = ok => ok ? `<span class="okc">✓ Verified</span>` : `<span class="crit">✗ Altered</span>`;
+function actionPill(r){
+  if (r.kind === "closure") return `<span class="pill p-fp">Auto-closed</span>`;
+  return r.held ? `<span class="pill p-test">Held for review</span>` : `<span class="pill p-tp">Quarantined</span>`;
+}
+function recordFor(alertId){ return (D.response_records || []).find(r => r.alert_id === alertId); }
+function renderResponse(){
+  const recs = D.response_records || [];
+  const kind = $("r-kind").value, src = $("r-src").value;
+  const rows = recs.filter(r => {
+    if (kind === "held" && !r.held) return false;
+    if (kind === "quarantine" && (r.kind !== "quarantine" || r.held)) return false;
+    if (kind === "closure" && r.kind !== "closure") return false;
+    if (src === "live" && !r.live) return false;
+    if (src === "dataset" && r.live) return false;
+    return true;
+  });
+  const bad = recs.filter(r => !r.verified).length;
+  $("resp-count").textContent = `${rows.length} of ${recs.length} records` + (bad ? `, ${bad} altered` : ", all verified");
+  const logs = D.kpi.integrity || {};
+  $("resp-logs").innerHTML = Object.entries(logs).filter(([n, v]) => v.records || !n.startsWith("live_")).map(([n, v]) => {
+    const t = v.tampered || [];
+    return `<div class="logchip ${t.length ? "bad" : ""}"><span class="mono">${esc(n)}</span><span class="muted">${v.records} records</span>${
+      !v.records ? `<span class="muted">empty</span>` : t.length ? `<span class="crit">✗ ${t.length} altered: ${esc(t.slice(0,3).join(", "))}</span>` : `<span class="okc">✓ all verified</span>`}</div>`;
+  }).join("");
+  $("resp-empty").hidden = rows.length > 0;
+  $("resp").innerHTML = rows.map(r => `<tr data-alert="${esc(r.alert_id)}" tabindex="0" title="Open ${esc(r.alert_id)}"><td class="mono">${esc(r.id)}</td><td class="mono">${esc(hhmm(r.time))}</td><td class="mono">${esc(r.alert_id)}</td><td>${esc(r.rule_id)}</td><td>${actionPill(r)}</td><td>${r.verdict ? verdictPill({verdict:r.verdict, confidence:r.confidence}) : ""}</td><td class="sum" title="${esc(r.summary)}">${esc(r.summary)}</td><td class="mono small" title="${esc(r.sha256)}">${esc(shortHash(r.sha256))}</td><td>${integrityMark(r.verified)}</td></tr>`).join("");
+}
+function renderLab(){
+  const l = D.lab_validation;
+  $("lab").innerHTML = `Replayed dataset: ${l.alerts} alerts, ${l.true_attacks} of them real attacks. Attacks classified true positive <b>${l.attacks_classified_tp} of ${l.true_attacks}</b>. Benign alerts auto-closed <b>${l.benign_closed} of ${l.alerts - l.true_attacks}</b>. <span class="${l.attacks_closed?"crit":"okc"}">Real attacks closed: <b>${l.attacks_closed}</b>.</span>`;
+}
+function renderOverview(){
+  if ($("overview").hidden) return;
+  renderKpis(D.kpi); renderTape(); renderCharts(); renderBreakdowns(); renderCoverage(); renderTables(); renderChain(); renderFeed(); renderResponse(); renderLab();
+}
+async function refresh(){
+  try {
+    D = await api("/api/summary");
+    const k = D.kpi;
+    $("m-dot").style.background = "var(--ok)";
+    $("m-upd").textContent = `Live, ${k.processed} of ${k.total_events} events processed` + (D.live.events ? `, ${D.live.events} from connected agents` : "");
+    renderOverview();
+  } catch (e) {
+    $("m-dot").style.background = "var(--crit)"; $("m-upd").textContent = "Server unreachable, retrying";
+  }
+}
+["f-status","f-sev","f-rule","f-verdict","f-user"].forEach(id => $(id).addEventListener("change", () => D && renderFeed()));
+$("f-q").addEventListener("input", () => D && renderFeed());
+$("chain-sel").addEventListener("change", () => D && renderChain());
+["r-kind","r-src"].forEach(id => $(id).addEventListener("change", () => D && renderResponse()));
+$("resp").addEventListener("click", e => { const tr = e.target.closest("tr[data-alert]"); if (tr && tr.dataset.alert) openAlert(tr.dataset.alert); });
+$("resp").addEventListener("keydown", e => { const tr = e.target.closest("tr[data-alert]"); if (tr && tr.dataset.alert && e.key === "Enter") openAlert(tr.dataset.alert); });
+$("feed").addEventListener("click", e => { const tr = e.target.closest("tr[data-id]"); if (!tr) return; selected = selected === tr.dataset.id ? null : tr.dataset.id; renderFeed(); });
+$("feed").addEventListener("keydown", e => { const tr = e.target.closest("tr[data-id]"); if (tr && e.key === "Enter") { selected = tr.dataset.id; renderFeed(); } });
+let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => D && !$("overview").hidden && (renderTape(), renderCharts()), 120); });
+
+/* ======================= USE CASES ======================= */
+let UC = [], ucSel = "T1", ucResult = null, ucNote = null, ucDirty = false;
+const STAGE = {draft:["Draft","p-draft"], testing:["Testing","p-test"], production:["Production","p-prod"]};
+
+async function loadUseCases(keepEdits){
+  try { UC = (await api("/api/usecases")).usecases; } catch(e) { ucNote = {k:"err", t:e.message}; }
+  if (!UC.some(u => u.rule_id === ucSel) && UC.length) ucSel = UC[0].rule_id;
+  renderUcList(); if (!keepEdits) renderUcEditor();
+}
+function stagePill(u){
+  if (u.deployed && !u.enabled && !u.pending) return `<span class="pill p-off">Disabled</span>`;
+  const [l,c] = STAGE[u.stage] || ["?","p-gap"];
+  return `<span class="pill ${c}">${l}</span>`;
+}
+function renderUcList(){
+  $("uc-rows").innerHTML = UC.map(u => `<tr data-id="${esc(u.rule_id)}" class="${u.rule_id===ucSel?"sel":""}" tabindex="0">
+    <td><div class="rname">${esc(u.rule_id)} ${esc(u.name)}</div><div class="rmeta">${esc(u.mapping || "Not mapped yet")}${u.pending && u.deployed ? ", production v" + esc(u.version) + " still running" : ""}</div></td>
+    <td>${u.engine === "sigma" ? "Sigma" : "Correlation"}</td><td>${stagePill(u)}</td><td>${sevPill(u.severity)}</td><td class="n">${u.deployed ? u.alerts : "–"}</td>
+    <td><button class="switch" role="switch" aria-checked="${u.enabled}" aria-label="Enable ${esc(u.rule_id)}" data-toggle="${esc(u.rule_id)}"></button></td></tr>`).join("");
+}
+$("uc-rows").addEventListener("click", async e => {
+  const sw = e.target.closest("[data-toggle]");
+  if (sw) {
+    e.stopPropagation();
+    try { await api("/api/usecases/toggle", {rule_id: sw.dataset.toggle, enabled: sw.getAttribute("aria-checked") !== "true"});
+          ucNote = {k:"okn", t:`${sw.dataset.toggle} ${sw.getAttribute("aria-checked") === "true" ? "disabled. The pipeline stops running it." : "enabled. The pipeline runs it on every event."}`}; }
+    catch(err) { ucNote = {k:"err", t:err.message}; }
+    ucSel = sw.dataset.toggle; ucResult = null; return loadUseCases();
+  }
+  const tr = e.target.closest("tr[data-id]"); if (!tr) return;
+  if (ucDirty && !confirm("Discard your unsaved edits?")) return;
+  ucSel = tr.dataset.id; ucResult = null; ucNote = null; ucDirty = false; renderUcList(); renderUcEditor();
+});
+$("uc-rows").addEventListener("keydown", e => { const tr = e.target.closest("tr[data-id]"); if (tr && e.key === "Enter" && !e.target.closest("[data-toggle]")) tr.click(); });
+
+function stepperHtml(u){
+  const order = ["draft","testing","production"], cur = order.indexOf(u.stage);
+  return `<div class="stepper" aria-label="Lifecycle stage">${order.map((s,i) => `<div class="stp ${i<cur?"done":i===cur?(s==="production"?"done":"now"):""}"><span class="n">${i<cur||(i===cur&&s==="production")?"✓":i+1}</span>${STAGE[s][0]}${i<2?'<span class="ln"></span>':""}</div>`).join("")}</div>`;
+}
+function resultHtml(r){
+  if (!r) return `<div class="empty">Load a sample or paste agent events (one JSON object per line), then run the test.</div>`;
+  const rows = r.results.map(x => `<div class="mrow"><span class="${x.verdict==="true_positive"?"crit":x.verdict==="benign_positive"?"":"okc"}" style="${x.verdict==="benign_positive"?"color:var(--bp)":""}">Match, ${(VERDICT[x.verdict]||["?"])[0]} ${esc(x.confidence)}</span><span>Line ${esc(x.lines.join(", "))}, ${esc(x.event_type)}: ${esc(ACTION[x.action]||x.action)}<br><span class="muted small mono">${esc(x.snippet)}</span></span></div>`).join("");
+  const none = r.unmatched.map(n => `<div class="mrow"><span class="muted">No match</span><span>Line ${esc(n)}</span></div>`).join("");
+  const errs = r.errors.map(x => `<div class="mrow"><span class="crit">Skipped</span><span>Line ${esc(x.line)}: ${esc(x.error)}</span></div>`).join("");
+  return `<div class="metrics"><div class="metric"><b>${r.tested}</b><span>events tested</span></div><div class="metric"><b>${r.matched}</b><span>matched the rule</span></div><div class="metric"><b>${r.true_positive}</b><span>confirmed by triage</span></div></div>${rows}${none}${errs}`;
+}
+function renderUcEditor(){
+  const u = UC.find(x => x.rule_id === ucSel), box = $("uc-editor");
+  if (!u) { box.innerHTML = `<div class="pad empty">Select a use case.</div>`; return; }
+  const p = u.pending, t = p ? p.last_test : u.last_test;
+  const canPromote = p && t && t.passed && t.version === p.version;
+  const status = p ? `Draft v${esc(p.version)}, saved ${esc(ago(p.updated_at))}${u.deployed ? `, production v${esc(u.version)} still running` : ", not in production yet"}`
+                   : (u.deployed ? `Production v${esc(u.version)}${u.enabled ? "" : ", disabled"}` : "");
+  const testBadge = r => r ? `<span class="pill ${r.passed?"p-prod":"p-crit"}">${r.passed?"Passed":"Not passed"}</span>` : (t ? `<span class="pill ${t.passed?"p-prod":"p-crit"}">${t.passed?"Last test passed":"Last test failed"}</span>` : "");
+  box.innerHTML = `
+    <div class="edhead"><div><h2>${esc(u.rule_id)} ${esc(u.name)}</h2><div class="rmeta">${status}</div></div>
+      ${p ? `<button class="btn small danger" id="uc-discard">Discard draft</button>` : (u.deployed ? `<button class="btn small ${u.enabled?"danger":""}" id="uc-enable">${u.enabled?"Disable":"Enable"}</button>` : "")}</div>
+    ${stepperHtml(u)}
+    ${ucNote ? `<div class="note ${ucNote.k}" role="status" style="margin-top:12px">${esc(ucNote.t)}</div>` : ""}
+    <div class="sec"><h3>${u.editable ? "Rule" : "How it works"} <span class="muted mono small">${esc(u.file || "")}</span></h3>
+      ${u.editable ? `<textarea class="code mono" id="uc-yaml" spellcheck="false" aria-label="Sigma rule YAML">${esc(u.yaml)}</textarea>`
+                   : `<p style="margin:0">${esc(u.description)}</p><p class="small muted" style="margin:6px 0 0">${esc(u.mapping)}. Correlation use cases are Python code in <span class="mono">correlation.py</span>: you can test, enable and disable them here, but not edit them.</p>`}</div>
+    <div class="sec"><h3>Test logs <span class="chips"><button class="chip" data-sample="attack">Load attack sample</button><button class="chip" data-sample="benign">Load benign sample</button></span></h3>
+      <textarea class="code logs mono" id="uc-logs" spellcheck="false" aria-label="Test log lines, one JSON event per line" placeholder='{"event_type":"shell_command","payload":{"command":"pip install reqeusts"}}'></textarea></div>
+    <div class="sec"><h3>Test result ${testBadge(ucResult)}</h3><div id="uc-result">${resultHtml(ucResult)}</div></div>
+    <div class="actions">
+      ${u.editable ? `<button class="btn" id="uc-save">Save draft</button>` : ""}
+      <button class="btn" id="uc-run">Run test${p ? " on draft" : ""}</button>
+      ${u.editable ? `<button class="btn primary" id="uc-promote" ${canPromote ? "" : 'aria-describedby="uc-promote-why"'}>Promote to production</button>` : ""}
+    </div>
+    ${u.editable && !canPromote ? `<div class="note info" id="uc-promote-why">${p ? `To promote, run a passing test on draft v${esc(p.version)}.` : "Edit the rule and save a draft to start a change."}</div>` : ""}`;
+  if (u.editable) $("uc-yaml").addEventListener("input", () => { ucDirty = true; });
+  box.querySelectorAll("[data-sample]").forEach(b => b.addEventListener("click", async () => {
+    try { $("uc-logs").value = (await api(`/api/usecases/samples?rule=${encodeURIComponent(u.rule_id)}`))[b.dataset.sample]; } catch(e) { showUcNote("err", e.message); }
+  }));
+  const on = (id, fn) => { const el = $(id); if (el) el.addEventListener("click", fn); };
+  on("uc-save", async () => {
+    try { const r = await api("/api/usecases/save", {rule_id: u.rule_id, yaml: $("uc-yaml").value}); ucDirty = false; ucResult = null;
+          ucNote = {k:"okn", t:`Draft v${r.version} saved. Run a test, then promote.`}; await loadUseCases(); }
+    catch(e) { showUcNote("err", e.message); }
+  });
+  on("uc-run", async () => {
+    if (ucDirty) { showUcNote("err", "Save the draft first, so the test runs on what you edited."); return; }
+    const logs = $("uc-logs").value;
+    if (!logs.trim()) { showUcNote("err", "Add at least one log line, or load a sample."); return; }
+    try { ucResult = await api("/api/usecases/test", {rule_id: u.rule_id, logs, draft: true}); ucNote = null;
+          await loadUseCases(true); renderUcEditor(); $("uc-logs").value = logs; }
+    catch(e) { showUcNote("err", e.message); }
+  });
+  on("uc-promote", async () => {
+    try { const r = await api("/api/usecases/promote", {rule_id: u.rule_id}); ucResult = null;
+          ucNote = {k:"okn", t:`Promoted. Production now runs v${r.version} on every agent event.`}; await loadUseCases(); }
+    catch(e) { showUcNote("err", e.message); }
+  });
+  on("uc-discard", async () => {
+    if (!confirm(u.deployed ? "Discard this draft? Production keeps running the current version." : "Discard this new use case? It hasn't been promoted, so it will be removed.")) return;
+    try { await api("/api/usecases/discard", {rule_id: u.rule_id}); ucDirty = false; ucResult = null; ucNote = {k:"okn", t:"Draft discarded."}; await loadUseCases(); }
+    catch(e) { showUcNote("err", e.message); }
+  });
+  on("uc-enable", async () => {
+    try { await api("/api/usecases/toggle", {rule_id: u.rule_id, enabled: !u.enabled}); ucNote = {k:"okn", t: u.enabled ? `${u.rule_id} disabled. The pipeline stops running it.` : `${u.rule_id} enabled.`}; await loadUseCases(); }
+    catch(e) { showUcNote("err", e.message); }
+  });
+}
+function showUcNote(kind, text){ ucNote = {k:kind, t:text}; const logs = $("uc-logs") ? $("uc-logs").value : ""; const yamlEl = $("uc-yaml"); const y = yamlEl ? yamlEl.value : null;
+  renderUcEditor(); if ($("uc-logs")) $("uc-logs").value = logs; if (y !== null && $("uc-yaml")) $("uc-yaml").value = y; }
+$("uc-new-btn").addEventListener("click", () => { $("uc-newform").hidden = false; $("uc-new-name").focus(); });
+$("uc-cancel").addEventListener("click", () => { $("uc-newform").hidden = true; });
+$("uc-create").addEventListener("click", async () => {
+  const name = $("uc-new-name").value.trim();
+  if (!name) { $("uc-new-name").focus(); ucNote = {k:"err", t:"Give the use case a name."}; return renderUcEditor(); }
+  try { const r = await api("/api/usecases/create", {name, severity: $("uc-new-sev").value});
+        ucSel = r.rule_id; ucResult = null; ucNote = {k:"okn", t:`${r.rule_id} created as a draft from a template. Edit the detection, save, test, then promote.`};
+        $("uc-newform").hidden = true; $("uc-new-name").value = ""; await loadUseCases(); }
+  catch(e) { ucNote = {k:"err", t:e.message}; renderUcEditor(); }
+});
+
+/* ======================= LOG SOURCES ======================= */
+let SRC = null, srcSel = "claude-code", tokenShown = null, srcNote = null;
+async function loadSources(){
+  try { SRC = await api("/api/sources"); } catch(e) { srcNote = {k:"err", t:e.message}; }
+  if (SRC) renderSources();
+}
+function renderSources(){
+  const S = SRC.sources, connected = S.filter(s => s.connected).length;
+  const total = S.reduce((a,s) => a + s.events, 0), sessions = S.reduce((a,s) => a + s.sessions, 0);
+  const last = S.map(s => s.last_event).filter(Boolean).sort().pop();
+  $("src-stats").innerHTML = [[`${connected} of ${S.length}`, "agents connected"], [total, "events received"], [sessions, "agent sessions"], [last ? hhmm(last) + " UTC" : "none", "last event"]]
+    .map(([v,l]) => `<div class="panel kpi"><div class="l">${esc(l)}</div><div class="v" style="font-size:22px">${esc(v)}</div></div>`).join("");
+  $("src-gallery").innerHTML = S.map(s => `<button class="conn" data-src="${esc(s.id)}" aria-pressed="${s.id===srcSel}"><span class="logo" style="background:${esc(s.color)}">${esc(s.initials)}</span>
+    <span><span class="t">${esc(s.name)}</span><br><span class="d">${esc(s.method)}${s.events ? `, ${s.events} event${s.events === 1 ? "" : "s"}` : ""}</span></span>
+    <span class="pill ${s.connected?"p-prod":"p-off"}">${s.connected?"Connected":"Not connected"}</span></button>`).join("");
+  const s = S.find(x => x.id === srcSel) || S[0], maxH = Math.max(1, ...s.hourly);
+  const tok = tokenShown || SRC.token_masked;
+  $("src-detail").innerHTML = `
+    <div class="edhead"><div style="display:flex;gap:12px;align-items:center"><span class="logo" style="background:${esc(s.color)}">${esc(s.initials)}</span><div><h2>${esc(s.name)}</h2><div class="rmeta">${esc(s.vendor)}. ${esc(/[.!?]$/.test(s.description) ? s.description : s.description + ".")}${s.custom ? ` Events are recorded as agent <span class="mono">${esc(s.agent)}</span>.` : ""}</div></div></div><div style="display:flex;gap:8px;align-items:center"><span class="pill ${s.connected?"p-prod":"p-off"}">${s.connected?"Connected":"Not connected"}</span>${s.custom ? `<button class="btn small" id="src-remove">Remove</button>` : ""}</div></div>
+    <div class="sec" style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+      <div class="kv" style="grid-template-columns:auto 1fr"><span>Events</span><span>${s.events}</span><span>Sessions</span><span>${s.sessions}</span><span>Last event</span><span>${s.last_event ? esc(s.last_event.replace("T"," ").replace("Z"," UTC")) : "none yet"}</span></div>
+      <div><div class="spark" aria-label="Events per hour of day">${s.hourly.map((v,h) => `<i style="height:${v/maxH*100}%" title="${String(h).padStart(2,"0")}:00 ${v} events"></i>`).join("")}</div><div class="small muted" style="text-align:right">events per hour</div></div>
+    </div>
+    ${srcNote ? `<div class="note ${srcNote.k}" role="status" style="margin-top:12px">${esc(srcNote.t)}</div>` : ""}
+    <div class="sec"><h3>Connect in three steps</h3><ol class="ol" style="margin:0;padding:0">
+      <li><div><div class="lbl">Copy your ingestion URL and token</div>
+        <div class="urlbox"><span class="mono" id="src-url">${esc(s.url)}</span><button class="btn small" data-copy="src-url">Copy</button></div>
+        <div class="urlbox" style="margin-top:6px"><span class="mono" id="src-tok">${esc(tok)}</span><button class="btn small" id="src-show">${tokenShown ? "Hide" : "Show"}</button>${tokenShown ? `<button class="btn small" data-copy="src-tok">Copy</button>` : ""}${SRC.token_from_env ? "" : `<button class="btn small" id="src-rotate">Rotate</button>`}</div>
+        <div class="small muted" style="margin-top:6px">Set it on the developer's machine as <span class="mono">AGENTGUARD_TOKEN</span>. The same token works for every source.</div></div></li>
+      <li><div><div class="lbl">${s.format === "claude_code_hook" ? `Add a hook to <span class="mono">${esc(s.setup.file)}</span>` : "Send events in the AgentGuard event schema"}</div>
+        <pre class="code mono" id="src-code">${esc(s.setup.code)}</pre><div style="margin-top:6px"><button class="btn small" data-copy="src-code">Copy snippet</button></div>
+        ${s.format === "claude_code_hook" ? "" : s.custom ? `<div class="small muted" style="margin-top:6px">Have the agent POST each action (prompt, file read or edit, shell command, git operation, API call) in AgentGuard's schema (see schema.json).</div>` : `<div class="small muted" style="margin-top:6px">${esc(s.name)}'s own hook format isn't mapped yet, so send events in AgentGuard's schema (see schema.json).</div>`}</div></li>
+      <li><div><div class="lbl">Check the connection</div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" id="src-test">Send test event</button>
+        <span class="small ${s.last_test_at?"okc":"muted"}">${s.last_test_at ? `Test event received ${esc(ago(s.last_test_at))}` : "No test event yet"}</span></div></div></li>
+    </ol></div>
+    <div class="sec"><h3>Field mapping</h3><div class="tscroll"><table><thead><tr><th>${esc(s.format === "claude_code_hook" ? "Claude Code hook field" : "Incoming field")}</th><th>AgentGuard field</th></tr></thead><tbody>
+      ${s.field_map.map(([a,b]) => `<tr><td class="mono">${esc(a)}</td><td class="mono">${esc(b)}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+$("src-gallery").addEventListener("click", e => { const b = e.target.closest("[data-src]"); if (!b) return; srcSel = b.dataset.src; srcNote = null; renderSources(); });
+$("src-detail").addEventListener("click", async e => {
+  const c = e.target.closest("[data-copy]");
+  if (c) { const text = $(c.dataset.copy).textContent;
+    try { await navigator.clipboard.writeText(text); c.textContent = "Copied"; }
+    catch(err) { const r = document.createRange(); r.selectNodeContents($(c.dataset.copy)); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); c.textContent = "Selected, press Cmd+C"; }
+    setTimeout(() => { c.textContent = c.dataset.copy === "src-code" ? "Copy snippet" : "Copy"; }, 1600); return; }
+  if (e.target.id === "src-show") { try { tokenShown = tokenShown ? null : (await api("/api/sources/token")).token; } catch(err) { srcNote = {k:"err", t:err.message}; } return renderSources(); }
+  if (e.target.id === "src-rotate") { if (!confirm("Rotate the token? Agents using the old token stop sending until you update them.")) return;
+    try { await api("/api/sources/token/rotate", {}); tokenShown = null; srcNote = {k:"okn", t:"Token rotated. Update AGENTGUARD_TOKEN on connected machines."}; } catch(err) { srcNote = {k:"err", t:err.message}; } return loadSources(); }
+  if (e.target.id === "src-remove") {
+    const s = SRC.sources.find(x => x.id === srcSel); if (!s) return;
+    if (!confirm(`Remove ${s.name}? Its URL stops accepting events. Events already received are kept.`)) return;
+    try { await api(`/api/sources/${encodeURIComponent(srcSel)}/delete`, {}); srcSel = "claude-code"; srcNote = null; }
+    catch(err) { srcNote = {k:"err", t:err.message}; } return loadSources(); }
+  if (e.target.id === "src-test") { e.target.disabled = true;
+    try { const r = await api(`/api/sources/${encodeURIComponent(srcSel)}/test`, {}); srcNote = {k:"okn", t:`Test event received and processed: ${r.accepted} event, ${r.alerts.length} alerts. It now appears on the Overview.`}; }
+    catch(err) { srcNote = {k:"err", t:err.message}; } return loadSources(); }
+});
+
+function closeAddForm(){ $("src-addform").hidden = true; $("src-add-note").textContent = ""; $("src-add-note").className = "small"; }
+$("src-add-btn").addEventListener("click", () => { $("src-addform").hidden = false; $("src-add-name").focus(); });
+$("src-add-cancel").addEventListener("click", closeAddForm);
+async function addSource(){
+  const btn = $("src-add-create"); btn.disabled = true;
+  try {
+    const c = await api("/api/sources/add", {name: $("src-add-name").value, description: $("src-add-desc").value});
+    $("src-add-name").value = ""; $("src-add-desc").value = ""; closeAddForm();
+    srcSel = c.id; srcNote = {k:"okn", t:`${c.name} added. Copy its URL and token, then send a test event.`};
+    await loadSources();
+  } catch(err) { $("src-add-note").textContent = err.message; $("src-add-note").className = "small crit"; }
+  btn.disabled = false;
+}
+$("src-add-create").addEventListener("click", addSource);
+["src-add-name","src-add-desc"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") addSource(); if (e.key === "Escape") closeAddForm(); }));
+
+/* ---------------- start ---------------- */
+let startTab = "overview"; try { startTab = localStorage.getItem("fag-tab") || "overview"; } catch(e) {}
+showTab(TABS.includes(startTab) ? startTab : "overview");
+refresh(); setInterval(refresh, 5000);
+setInterval(() => { if (!$("sources").hidden) loadSources(); }, 10000);
+</script>
+</body>
+</html>

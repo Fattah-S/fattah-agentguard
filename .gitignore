@@ -1,0 +1,24 @@
+# runtime output of the pipeline (regenerated on every run)
+alerts.json
+quarantine.log
+triage.log
+stream_state.json
+*.tmp
+
+# runtime state created by the dashboard
+usecases.json
+ingest_token.txt
+sources_state.json
+live_events.ndjson
+live_alerts.json
+live_quarantine.log
+live_triage.log
+
+# local noise
+__pycache__/
+*.pyc
+.DS_Store
+*.zip
+.venv/
+score.txt
+custom_sources.json

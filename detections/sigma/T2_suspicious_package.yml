@@ -1,0 +1,55 @@
+rule_id: T2
+title: Suspicious Package Install by Coding Agent
+id: c464b969-103d-4f00-b912-fa7c558b4beb
+status: experimental
+description: >
+  Detects a coding agent installing packages that are typosquats of popular
+  libraries, names with hallucination-style suffixes, or installs from a custom
+  index/registry or a git source — the dependency-confusion and malicious-package
+  supply-chain vector. Tuned coverage-first: any non-default source and common
+  hallucinated-name suffixes are flagged, and the Mini SOAR triage step clears
+  trusted registries and organisations.
+author: Mohamed Ibrahim (Fattah AgentGuard)
+date: 2026-10-17
+references:
+  - https://owasp.org/www-project-top-10-for-large-language-model-applications/
+  - https://atlas.mitre.org/techniques/AML.T0010
+  - https://attack.mitre.org/techniques/T1195/001/
+logsource:
+  product: coding_agent
+  category: shell
+detection:
+  selection_install:
+    event_type: shell_command
+    payload.command|contains:
+      - 'pip install'
+      - 'npm install'
+  typosquat_or_hallucinated:
+    payload.command|contains:
+      - 'reqeusts'                 # requests
+      - 'expresss'                 # express
+      - 'colourama'                # colorama
+      - 'djnago'                   # django
+      - '-helper'                  # hallucination-style suffix, coverage-first
+      - '-pro'                     # hallucination-style suffix, coverage-first
+      - '-utils'                   # hallucination-style suffix, coverage-first
+  untrusted_source:
+    payload.command|contains:
+      - '--index-url http://'      # non-https / unofficial index
+      - '--registry'               # any custom npm registry, coverage-first
+      - 'git+https://'             # any git-hosted package, coverage-first
+  condition: selection_install and (typosquat_or_hallucinated or untrusted_source)
+falsepositives:
+  - Real packages whose names end in -utils / -helper
+  - Internal registries on the organisation allowlist
+  - Packages installed from the organisation's own git repositories
+level: high
+tags:
+  - attack.initial-access
+  - attack.t1195.001            # Compromise Software Dependencies and Development Tools
+  - atlas.aml.t0010             # AI Supply Chain Compromise
+  - owasp.llm03
+severity_label: High
+recommended_action: >
+  Block the install, write the package to the quarantine log, and verify the
+  package name and source against the approved registry before proceeding.
